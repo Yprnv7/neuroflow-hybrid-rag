@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuroflow-hybrid-rag"
+version = "0.2.0"
+description = "Enterprise Hybrid RAG: BM25, Dense Embeddings, RRF, Cross-Encoder Reranking, and Tenant-Isolated Semantic Cache"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Pranav Yeleswarapu" }]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.28.0",
+    "pydantic>=2.6.0",
+    "numpy>=1.26.0",
+    "scikit-learn>=1.4.0",
+    "sentence-transformers>=2.6.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --cov=src/neuroflow --cov-report=term-missing"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
