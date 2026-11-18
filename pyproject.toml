@@ -29,6 +29,7 @@ dev = [
 
 [tool.pytest.ini_options]
 minversion = "8.0"
+pythonpath = ["src"]
 addopts = "-ra -q --cov=src/neuroflow --cov-report=term-missing"
 testpaths = ["tests"]
 
