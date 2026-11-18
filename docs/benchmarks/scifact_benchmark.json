@@ -1,0 +1,55 @@
+{
+  "dataset": "scifact",
+  "timestamp": "2026-11-18 13:17:01 UTC",
+  "hardware": "arm (Darwin 25.4.0), Python 3.14.6",
+  "summary": {
+    "BM25 Only": {
+      "ndcg10": 0.6872,
+      "recall100": 0.9064,
+      "mrr10": 0.657,
+      "p50_ms": 25.19,
+      "p95_ms": 57.61,
+      "p99_ms": 119.34
+    },
+    "Dense Only (bge-small)": {
+      "ndcg10": 0.7258,
+      "recall100": 0.96,
+      "mrr10": 0.6909,
+      "p50_ms": 13.54,
+      "p95_ms": 35.33,
+      "p99_ms": 86.76
+    },
+    "Hybrid RRF (k=60)": {
+      "ndcg10": 0.7392,
+      "recall100": 0.9767,
+      "mrr10": 0.711,
+      "p50_ms": 25.78,
+      "p95_ms": 65.08,
+      "p99_ms": 216.42
+    },
+    "Hybrid Convex (alpha=0.6)": {
+      "ndcg10": 0.7478,
+      "recall100": 0.9767,
+      "mrr10": 0.7168,
+      "p50_ms": 25.78,
+      "p95_ms": 65.08,
+      "p99_ms": 216.42
+    },
+    "Hybrid RRF + Rerank (Top-25)": {
+      "ndcg10": 0.7109,
+      "recall100": 0.9767,
+      "mrr10": 0.6719,
+      "p50_ms": 472.28,
+      "p95_ms": 573.82,
+      "p99_ms": 800.36
+    },
+    "Hybrid RRF + Rerank (Top-50)": {
+      "ndcg10": 0.6976,
+      "recall100": 0.9767,
+      "mrr10": 0.6658,
+      "p50_ms": 981.56,
+      "p95_ms": 1179.37,
+      "p99_ms": 1298.27
+    }
+  }
+}
