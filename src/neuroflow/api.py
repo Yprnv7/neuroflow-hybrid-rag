@@ -47,6 +47,7 @@ class QueryResponse(BaseModel):
     tenant_id: str
     cached: bool
     latency_ms: float
+    timing_breakdown: Dict[str, float] = Field(default_factory=dict)
     results: List[Dict[str, Any]]
     answer_preview: str
 
@@ -75,22 +76,33 @@ def ingest_documents(docs: List[IngestDoc]):
 @app.post("/v1/query", response_model=QueryResponse)
 def query_pipeline(req: QueryRequest):
     t0 = time.perf_counter()
+    timings: Dict[str, float] = {}
 
+    t_embed_start = time.perf_counter()
     q_vec = encoder.encode_one(req.query)
+    timings["embed_ms"] = round((time.perf_counter() - t_embed_start) * 1000, 2)
 
     # 1. Tenant-isolated semantic cache check
     if req.enable_cache:
+        t_cache_start = time.perf_counter()
         cached_result = cache.get(req.tenant_id, q_vec)
+        timings["cache_ms"] = round((time.perf_counter() - t_cache_start) * 1000, 2)
         if cached_result is not None:
             cached_resp, sim = cached_result
             cached_resp["cached"] = True
             cached_resp["latency_ms"] = round((time.perf_counter() - t0) * 1000, 2)
+            cached_resp["timing_breakdown"] = timings
             return cached_resp
+    else:
+        timings["cache_ms"] = 0.0
 
     # 2. Parallel BM25 + Dense retrieval
+    t_bm25_start = time.perf_counter()
     bm25_hits = bm25.search(req.query, tenant_id=req.tenant_id, top_k=50)
+    timings["bm25_ms"] = round((time.perf_counter() - t_bm25_start) * 1000, 2)
 
     # Dense vector cosine similarity
+    t_dense_start = time.perf_counter()
     dense_hits = []
     if len(all_chunks) > 0 and len(chunk_embeddings) > 0:
         sims = chunk_embeddings @ q_vec
@@ -99,17 +111,22 @@ def query_pipeline(req: QueryRequest):
             sub_sims = sims[indices]
             sub_ranked = sorted(zip(indices, sub_sims), key=lambda x: x[1], reverse=True)[:50]
             dense_hits = [(all_chunks[idx], float(score)) for idx, score in sub_ranked]
+    timings["dense_ms"] = round((time.perf_counter() - t_dense_start) * 1000, 2)
 
     # 3. Reciprocal Rank Fusion (RRF)
+    t_fusion_start = time.perf_counter()
     fused_candidates = reciprocal_rank_fusion(bm25_hits, dense_hits, k=60)
     top_candidates = [c for c, _ in fused_candidates[:25]]
+    timings["fusion_ms"] = round((time.perf_counter() - t_fusion_start) * 1000, 2)
 
     # 4. Cross-Encoder Reranking
+    t_rerank_start = time.perf_counter()
     if req.enable_rerank and top_candidates:
         final_ranked = reranker.rerank(req.query, top_candidates, top_k=req.top_k)
         final_results = [{"chunk": c, "rerank_score": s} for c, s in final_ranked]
     else:
         final_results = [{"chunk": c, "rerank_score": None} for c in top_candidates[:req.top_k]]
+    timings["rerank_ms"] = round((time.perf_counter() - t_rerank_start) * 1000, 2)
 
     # Generate citation summary
     citations = [f"[{res['chunk']['doc_id']}:{res['chunk']['chunk_id']}]" for res in final_results]
@@ -121,6 +138,7 @@ def query_pipeline(req: QueryRequest):
         "tenant_id": req.tenant_id,
         "cached": False,
         "latency_ms": total_ms,
+        "timing_breakdown": timings,
         "results": final_results,
         "answer_preview": preview
     }

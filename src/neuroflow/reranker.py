@@ -26,7 +26,7 @@ class CrossEncoderReranker:
 
         if not self.fallback and self._model is not None:
             pairs = [[query, c["text"]] for c in candidates]
-            raw_scores = self._model.predict(pairs)
+            raw_scores = self._model.predict(pairs, batch_size=64, show_progress_bar=False)
             scores = [1.0 / (1.0 + math.exp(-float(s))) for s in raw_scores]
         else:
             q_words = set(query.lower().split())
